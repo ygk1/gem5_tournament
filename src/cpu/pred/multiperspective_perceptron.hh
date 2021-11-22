@@ -53,7 +53,7 @@ namespace branch_prediction
 
 class MultiperspectivePerceptron : public BPredUnit
 {
-  protected:
+  public:
     /**
      * Branch information data
      */

@@ -63,7 +63,7 @@ namespace branch_prediction
 
 class TAGE: public BPredUnit
 {
-  protected:
+  public:
     TAGEBase *tage;
 
     struct TageBranchInfo

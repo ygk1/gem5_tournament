@@ -42,6 +42,10 @@
 
 #include "base/bitfield.hh"
 #include "base/intmath.hh"
+#include "cpu/pred/multiperspective_perceptron.hh"
+#include "cpu/pred/tage.hh"
+#include "cpu/pred/tage_base.hh"
+#include "debug/Tage.hh"
 
 namespace gem5
 {
@@ -51,6 +55,8 @@ namespace branch_prediction
 
 Tournament2BP::Tournament2BP(const Tournament2BPParams &params)
     : BPredUnit(params),
+      tage_pred(params.tage),
+      prec_pred(params.perceptron),
       localPredictorSize(params.localPredictorSize),
       localCtrBits(params.localCtrBits),
       localCtrs(localPredictorSize, SatCounter8(localCtrBits)),
@@ -122,7 +128,11 @@ Tournament2BP::Tournament2BP(const Tournament2BPParams &params)
     localThreshold  = (1ULL << (localCtrBits  - 1)) - 1;
     globalThreshold = (1ULL << (globalCtrBits - 1)) - 1;
     choiceThreshold = (1ULL << (choiceCtrBits - 1)) - 1;
+    prediction = false;
+
 }
+
+
 
 inline
 unsigned
@@ -174,41 +184,53 @@ Tournament2BP::btbUpdate(ThreadID tid, Addr branch_addr, void * &bp_history)
     //Update Local History to Not Taken
     localHistoryTable[local_history_idx] =
        localHistoryTable[local_history_idx] & (localPredictorMask & ~1ULL);
+    //tage_pred->btbUpdate(tid, branch_addr, bp_history);
 }
 
 bool
 Tournament2BP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
 {
-    bool taken_prediction=true;
+    //bool taken_prediction=true;
+    bool tage_prediction;
 
-
-    bool not_taken_predicition=false;
+    bool multilayer_preceptron_prediction;
     bool choice_prediction;
+    BPHistory *history = new BPHistory;
+    bp_history = history;
+    void *history_tage;
+    void *history_MPP;
+
+
+
+    tage_prediction = tage_pred->lookup(tid, branch_addr, history_tage);
+    multilayer_preceptron_prediction = prec_pred->lookup(tid, branch_addr,
+    history_MPP);
+
+    history->BPTage = static_cast<TAGE::TageBranchInfo*>(history_tage);
+    history->BPMPP = static_cast<MultiperspectivePerceptron::MPPBranchInfo*>
+    (history_MPP);
 
     //Lookup in the local predictor to get its branch prediction
 
 
     //Lookup in the choice predictor to see which one to use
     choice_prediction = choiceThreshold <
-      choiceCtrs[globalHistory[tid] & choiceHistoryMask];
+      choiceCtrs[branch_addr & choiceHistoryMask];
 
     // Create BPHistory and pass it back to be recorded.
-    BPHistory *history = new BPHistory;
-    history->globalHistory = globalHistory[tid];
-    history->globalUsed = choice_prediction;
-    bp_history = (void *)history;
 
 
+    //tage_prediction = true;
     // Speculative update of the global history and the
     // selected local history.
     if (choice_prediction) {
             updateGlobalHistTaken(tid);
-
-            return taken_prediction;
+            prediction = tage_prediction;
+            return tage_prediction;
     } else {
             updateGlobalHistNotTaken(tid);
-
-            return not_taken_predicition;
+            prediction = tage_prediction;
+            return multilayer_preceptron_prediction;
         }
 }
 
@@ -216,11 +238,7 @@ void
 Tournament2BP::uncondBranch(ThreadID tid, Addr pc, void * &bp_history)
 {
     // Create BPHistory and pass it back to be recorded.
-    BPHistory *history = new BPHistory;
-    history->globalHistory = globalHistory[tid];
-    history->globalUsed = true;
-    bp_history = static_cast<void *>(history);
-
+    tage_pred->uncondBranch(tid, pc, bp_history);
     updateGlobalHistTaken(tid);
 }
 
@@ -229,26 +247,19 @@ Tournament2BP::update(ThreadID tid, Addr branch_addr, bool taken,
                      void *bp_history, bool squashed,
                      const StaticInstPtr & inst, Addr corrTarget)
 {
+    BPHistory *history = static_cast<BPHistory *>(bp_history);
+    tage_pred->update(tid, branch_addr, taken, (BPHistory*)history->BPTage,
+     squashed, inst, corrTarget);
+    prec_pred->update(tid, branch_addr, taken, (BPHistory*)history->BPMPP,
+    squashed, inst, corrTarget);
     assert(bp_history);
 
-    BPHistory *history = static_cast<BPHistory *>(bp_history);
-
-    unsigned local_history_idx = calcLocHistIdx(branch_addr);
-
-    assert(local_history_idx < localHistoryTableSize);
 
     // Unconditional branches do not use local history.
 
     // If this is a misprediction, restore the speculatively
     // updated state (global history register and local history)
     // and update again.
-    if (squashed) {
-        // Global history restore and update
-        globalHistory[tid] = (history->globalHistory << 1) | taken;
-        globalHistory[tid] &= historyRegisterMask;
-
-        return;
-    }
 
 
     // Update the choice predictor to tell it which one was correct if
@@ -257,9 +268,8 @@ Tournament2BP::update(ThreadID tid, Addr branch_addr, bool taken,
         // If the local prediction matches the actual outcome,
         // decrement the counter. Otherwise increment the
         // counter.
-    unsigned choice_predictor_idx =
-        history->globalHistory & choiceHistoryMask;
-    if (history->globalUsed) {
+    unsigned choice_predictor_idx = (branch_addr & choiceHistoryMask);
+    if (prediction) {
         choiceCtrs[choice_predictor_idx]++;
     }
     else {
@@ -272,15 +282,17 @@ Tournament2BP::update(ThreadID tid, Addr branch_addr, bool taken,
     // speculatively, restored upon squash() calls, and
     // recomputed upon update(squash = true) calls,
     // so they do not need to be updated.
-
+    delete(history);
     // We're done with this history, now delete it.
-    delete history;
+
 }
 
 void
 Tournament2BP::squash(ThreadID tid, void *bp_history)
 {
-
+    BPHistory *history = static_cast<BPHistory *>(bp_history);
+    tage_pred->squash(tid, history->BPTage);
+    prec_pred->squash(tid, history->BPMPP);
 }
 
 #ifdef DEBUG

@@ -29,7 +29,7 @@ system.mem_ctrl.range = system.mem_ranges[0]
 system.mem_ctrl.port = system.membus.mem_side_ports
 
 process = Process()
-process.cmd = ['microbenchmark/CCa/bench.X86']
+process.cmd = ['../microbenchmark/CCa/bench.X86']
 system.cpu.workload = process
 system.cpu.createThreads()
 

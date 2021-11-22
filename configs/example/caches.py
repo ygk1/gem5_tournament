@@ -116,8 +116,8 @@ class L2Cache(Cache):
     mshrs = 20
     tgts_per_mshr = 12
 
-    SimpleOpts.add_option('--l2_size', help="L2 cache size.
-     Default: %s" % size)
+    SimpleOpts.add_option('--l2_size', help="L2 cache size. \
+        Default: %s" % size)
 
     def __init__(self, opts=None):
         super(L2Cache, self).__init__()

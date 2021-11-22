@@ -46,7 +46,7 @@ import sys
 
 from .region import *
 
-tabsize = 8
+tabsize = 16
 lead = re.compile(r'^([ \t]+)')
 trail = re.compile(r'([ \t]+)$')
 any_control = re.compile(r'\b(if|while|for)([ \t]*)\(')

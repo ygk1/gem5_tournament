@@ -89,18 +89,8 @@ class TournamentBP(BranchPredictor):
     choicePredictorSize = Param.Unsigned(8192, "Size of choice predictor")
     choiceCtrBits = Param.Unsigned(2, "Bits of choice counters")
 
-class Tournament2BP(BranchPredictor):
-    type = 'Tournament2BP'
-    cxx_class = 'gem5::branch_prediction::Tournament2BP'
-    cxx_header = "cpu/pred/tournament2.hh"
 
-    localPredictorSize = Param.Unsigned(2048, "Size of local predictor")
-    localCtrBits = Param.Unsigned(2, "Bits per counter")
-    localHistoryTableSize = Param.Unsigned(2048, "size of local history table")
-    globalPredictorSize = Param.Unsigned(8192, "Size of global predictor")
-    globalCtrBits = Param.Unsigned(2, "Bits per counter")
-    choicePredictorSize = Param.Unsigned(8192, "Size of choice predictor")
-    choiceCtrBits = Param.Unsigned(2, "Bits of choice counters")
+
 
 class BiModeBP(BranchPredictor):
     type = 'BiModeBP'
@@ -163,6 +153,7 @@ class TAGE(BranchPredictor):
     cxx_header = "cpu/pred/tage.hh"
 
     tage = Param.TAGEBase(TAGEBase(), "Tage object")
+
 
 class LTAGE_TAGE(TAGEBase):
     nHistoryTables = 12
@@ -570,6 +561,22 @@ class MultiperspectivePerceptron(BranchPredictor):
 
     initial_ghist_length = Param.Int(1, "Initial GHist length value")
     ignore_path_size = Param.Bool(False, "Ignore the path storage")
+
+class Tournament2BP(BranchPredictor):
+    type = 'Tournament2BP'
+    cxx_class = 'gem5::branch_prediction::Tournament2BP'
+    cxx_header = "cpu/pred/tournament2.hh"
+
+    localPredictorSize = Param.Unsigned(2048, "Size of local predictor")
+    localCtrBits = Param.Unsigned(2, "Bits per counter")
+    localHistoryTableSize = Param.Unsigned(2048, "size of local history table")
+    globalPredictorSize = Param.Unsigned(8192, "Size of global predictor")
+    globalCtrBits = Param.Unsigned(2, "Bits per counter")
+    choicePredictorSize = Param.Unsigned(8192, "Size of choice predictor")
+    choiceCtrBits = Param.Unsigned(2, "Bits of choice counters")
+    tage = Param.TAGE(TAGE(), "Tage object")
+    perceptron = Param.MultiperspectivePerceptron(MultiperspectivePerceptron(),
+        "Multiperspective Perceptron")
 
 class MultiperspectivePerceptron8KB(MultiperspectivePerceptron):
     type = 'MultiperspectivePerceptron8KB'

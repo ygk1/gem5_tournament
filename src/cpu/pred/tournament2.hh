@@ -46,6 +46,8 @@
 #include "base/sat_counter.hh"
 #include "base/types.hh"
 #include "cpu/pred/bpred_unit.hh"
+#include "cpu/pred/multiperspective_perceptron.hh"
+#include "cpu/pred/tage.hh"
 #include "params/Tournament2BP.hh"
 
 namespace gem5
@@ -65,6 +67,9 @@ namespace branch_prediction
 class Tournament2BP : public BPredUnit
 {
   public:
+
+    TAGE *tage_pred;
+    MultiperspectivePerceptron *prec_pred;
     /**
      * Default branch predictor constructor.
      */
@@ -167,12 +172,12 @@ class Tournament2BP : public BPredUnit
 
         static int newCount;
 #endif
-        unsigned globalHistory;
-        unsigned localHistoryIdx;
-        unsigned localHistory;
-        bool localPredTaken;
-        bool globalPredTaken;
-        bool globalUsed;
+        TAGE::TageBranchInfo *BPTage;
+        MultiperspectivePerceptron::MPPBranchInfo *BPMPP;
+
+
+
+
     };
 
     /** Flag for invalid predictor index */
@@ -243,6 +248,7 @@ class Tournament2BP : public BPredUnit
     unsigned localThreshold;
     unsigned globalThreshold;
     unsigned choiceThreshold;
+    bool prediction;
 };
 
 } // namespace branch_prediction
