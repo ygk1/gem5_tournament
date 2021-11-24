@@ -42,7 +42,7 @@
 
 #include "base/bitfield.hh"
 #include "base/intmath.hh"
-#include "cpu/pred/multiperspective_perceptron.hh"
+#include "cpu/pred/multiperspective_perceptron_8KB.hh"
 #include "cpu/pred/tage.hh"
 #include "cpu/pred/tage_base.hh"
 #include "debug/Tage.hh"
@@ -178,13 +178,17 @@ Tournament2BP::updateLocalHistNotTaken(unsigned local_history_idx)
 void
 Tournament2BP::btbUpdate(ThreadID tid, Addr branch_addr, void * &bp_history)
 {
-    unsigned local_history_idx = calcLocHistIdx(branch_addr);
+    //unsigned local_history_idx = calcLocHistIdx(branch_addr);
+    BPHistory *history = static_cast<BPHistory *>(bp_history);
+    void *tage_history = history->BPTage;
+    void *mpp_history = history->BPMPP;
     //Update Global History to Not Taken (clear LSB)
-    globalHistory[tid] &= (historyRegisterMask & ~1ULL);
+    //globalHistory[tid] &= (historyRegisterMask & ~1ULL);
     //Update Local History to Not Taken
-    localHistoryTable[local_history_idx] =
-       localHistoryTable[local_history_idx] & (localPredictorMask & ~1ULL);
-    //tage_pred->btbUpdate(tid, branch_addr, bp_history);
+    //localHistoryTable[local_history_idx] =
+    //   localHistoryTable[local_history_idx] & (localPredictorMask & ~1ULL);
+    tage_pred->btbUpdate(tid, branch_addr, tage_history);
+    prec_pred->btbUpdate(tid, branch_addr, mpp_history);
 }
 
 bool
@@ -207,9 +211,9 @@ Tournament2BP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
     history_MPP);
 
     history->BPTage = static_cast<TAGE::TageBranchInfo*>(history_tage);
-    history->BPMPP = static_cast<MultiperspectivePerceptron::MPPBranchInfo*>
+    history->BPMPP = static_cast<MultiperspectivePerceptron8KB::MPPBranchInfo*>
     (history_MPP);
-
+    bp_history = (void *)history;
     //Lookup in the local predictor to get its branch prediction
 
 
@@ -229,7 +233,7 @@ Tournament2BP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
             return tage_prediction;
     } else {
             updateGlobalHistNotTaken(tid);
-            prediction = tage_prediction;
+            prediction = multilayer_preceptron_prediction;
             return multilayer_preceptron_prediction;
         }
 }
@@ -237,8 +241,17 @@ Tournament2BP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
 void
 Tournament2BP::uncondBranch(ThreadID tid, Addr pc, void * &bp_history)
 {
+    
     // Create BPHistory and pass it back to be recorded.
-    tage_pred->uncondBranch(tid, pc, bp_history);
+    BPHistory *history = new BPHistory;
+    void *history_tage;
+    void *history_MPP;
+    tage_pred->uncondBranch(tid, pc,  history_tage);
+    prec_pred->uncondBranch(tid, pc, history_MPP );
+    history->BPTage = static_cast<TAGE::TageBranchInfo*>(history_tage);
+    history->BPMPP = static_cast<MultiperspectivePerceptron8KB::MPPBranchInfo*>
+     (history_MPP);
+    bp_history = (void *)history;
     updateGlobalHistTaken(tid);
 }
 
@@ -247,13 +260,19 @@ Tournament2BP::update(ThreadID tid, Addr branch_addr, bool taken,
                      void *bp_history, bool squashed,
                      const StaticInstPtr & inst, Addr corrTarget)
 {
-    BPHistory *history = static_cast<BPHistory *>(bp_history);
-    tage_pred->update(tid, branch_addr, taken, (BPHistory*)history->BPTage,
-     squashed, inst, corrTarget);
-    prec_pred->update(tid, branch_addr, taken, (BPHistory*)history->BPMPP,
-    squashed, inst, corrTarget);
     assert(bp_history);
-
+    BPHistory *history = static_cast<BPHistory *>(bp_history);
+    void *tage_history = history->BPTage;
+    void *mpp_history = history->BPMPP;
+    tage_pred->update(tid, branch_addr, taken, tage_history,
+        squashed, inst, corrTarget);
+    prec_pred->update(tid, branch_addr, taken, mpp_history,
+        squashed, inst, corrTarget);
+   
+    if (squashed) {
+        // Global history restore and update
+        return ;
+    }
 
     // Unconditional branches do not use local history.
 
@@ -291,8 +310,10 @@ void
 Tournament2BP::squash(ThreadID tid, void *bp_history)
 {
     BPHistory *history = static_cast<BPHistory *>(bp_history);
-    tage_pred->squash(tid, history->BPTage);
-    prec_pred->squash(tid, history->BPMPP);
+    void *tage_history = history->BPTage;
+    void *mpp_history = history->BPMPP;
+    tage_pred->squash(tid, tage_history);
+    prec_pred->squash(tid, mpp_history);
 }
 
 #ifdef DEBUG

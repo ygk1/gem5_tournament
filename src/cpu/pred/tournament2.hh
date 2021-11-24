@@ -46,7 +46,7 @@
 #include "base/sat_counter.hh"
 #include "base/types.hh"
 #include "cpu/pred/bpred_unit.hh"
-#include "cpu/pred/multiperspective_perceptron.hh"
+#include "cpu/pred/multiperspective_perceptron_8KB.hh"
 #include "cpu/pred/tage.hh"
 #include "params/Tournament2BP.hh"
 
@@ -58,18 +58,14 @@ namespace branch_prediction
 
 /**
  * Implements a Tournament2 branch predictor, hopefully identical to the one
- * used in the 21264.  It has a local predictor, which uses a local history
- * table to index into a table of counters, and a global predictor, which
- * uses a global history to index into a table of counters.  A choice
- * predictor chooses between the two.  Both the global history register
- * and the selected local history are speculatively updated.
+ * used in the 21264.  
  */
 class Tournament2BP : public BPredUnit
 {
   public:
 
     TAGE *tage_pred;
-    MultiperspectivePerceptron *prec_pred;
+    MultiperspectivePerceptron8KB *prec_pred;
     /**
      * Default branch predictor constructor.
      */
@@ -173,7 +169,7 @@ class Tournament2BP : public BPredUnit
         static int newCount;
 #endif
         TAGE::TageBranchInfo *BPTage;
-        MultiperspectivePerceptron::MPPBranchInfo *BPMPP;
+        MultiperspectivePerceptron8KB::MPPBranchInfo *BPMPP;
 
 
 

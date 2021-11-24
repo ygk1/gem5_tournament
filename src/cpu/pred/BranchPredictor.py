@@ -562,6 +562,23 @@ class MultiperspectivePerceptron(BranchPredictor):
     initial_ghist_length = Param.Int(1, "Initial GHist length value")
     ignore_path_size = Param.Bool(False, "Ignore the path storage")
 
+
+
+    
+
+class MultiperspectivePerceptron8KB(MultiperspectivePerceptron):
+    type = 'MultiperspectivePerceptron8KB'
+    cxx_class = 'gem5::branch_prediction::MultiperspectivePerceptron8KB'
+    cxx_header = 'cpu/pred/multiperspective_perceptron_8KB.hh'
+
+    budgetbits = 8192 * 8 + 2048
+    num_local_histories = 48
+    num_filter_entries = 0
+    imli_mask1 = 0x6
+    imli_mask4 = 0x4400
+    recencypos_mask = 0x100000090
+
+
 class Tournament2BP(BranchPredictor):
     type = 'Tournament2BP'
     cxx_class = 'gem5::branch_prediction::Tournament2BP'
@@ -575,20 +592,7 @@ class Tournament2BP(BranchPredictor):
     choicePredictorSize = Param.Unsigned(8192, "Size of choice predictor")
     choiceCtrBits = Param.Unsigned(2, "Bits of choice counters")
     tage = Param.TAGE(TAGE(), "Tage object")
-    perceptron = Param.MultiperspectivePerceptron(MultiperspectivePerceptron(),
-        "Multiperspective Perceptron")
-
-class MultiperspectivePerceptron8KB(MultiperspectivePerceptron):
-    type = 'MultiperspectivePerceptron8KB'
-    cxx_class = 'gem5::branch_prediction::MultiperspectivePerceptron8KB'
-    cxx_header = 'cpu/pred/multiperspective_perceptron_8KB.hh'
-
-    budgetbits = 8192 * 8 + 2048
-    num_local_histories = 48
-    num_filter_entries = 0
-    imli_mask1 = 0x6
-    imli_mask4 = 0x4400
-    recencypos_mask = 0x100000090
+    perceptron = Param.MultiperspectivePerceptron8KB(MultiperspectivePerceptron8KB(), "Multiperspective Perceptron")
 
 class MultiperspectivePerceptron64KB(MultiperspectivePerceptron):
     type = 'MultiperspectivePerceptron64KB'
