@@ -227,9 +227,12 @@ Tournament2BP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
     //tage_prediction = true;
     // Speculative update of the global history and the
     // selected local history.
+    history->tage_predicted = tage_prediction;
+    history->mpp_predicted = multilayer_preceptron_prediction;
     if (choice_prediction) {
             updateGlobalHistTaken(tid);
             prediction = tage_prediction;
+            
             return tage_prediction;
     } else {
             updateGlobalHistNotTaken(tid);
@@ -288,10 +291,10 @@ Tournament2BP::update(ThreadID tid, Addr branch_addr, bool taken,
         // decrement the counter. Otherwise increment the
         // counter.
     unsigned choice_predictor_idx = (branch_addr & choiceHistoryMask);
-    if (prediction) {
+    if (taken == history->tage_predicted) {
         choiceCtrs[choice_predictor_idx]++;
     }
-    else {
+    else if(taken == history->mpp_predicted) {
         choiceCtrs[choice_predictor_idx]--;
     }
 

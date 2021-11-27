@@ -170,6 +170,8 @@ class Tournament2BP : public BPredUnit
 #endif
         TAGE::TageBranchInfo *BPTage;
         MultiperspectivePerceptron8KB::MPPBranchInfo *BPMPP;
+        bool tage_predicted;
+        bool mpp_predicted;
 
 
 
