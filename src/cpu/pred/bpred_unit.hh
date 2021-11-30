@@ -54,6 +54,8 @@
 #include "params/BranchPredictor.hh"
 #include "sim/probe/pmu.hh"
 #include "sim/sim_object.hh"
+#include <map>
+
 
 namespace gem5
 {
@@ -68,6 +70,7 @@ namespace branch_prediction
 class BPredUnit : public SimObject
 {
   public:
+      std::map<Addr, int> mispredict_tracker= {};
       typedef BranchPredictorParams Params;
     /**
      * @param params The params object, that has the size of the BP and BTB.

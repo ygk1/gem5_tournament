@@ -49,6 +49,7 @@
 #include "base/trace.hh"
 #include "config/the_isa.hh"
 #include "debug/Branch.hh"
+#include <iterator>
 
 namespace gem5
 {
@@ -315,7 +316,7 @@ BPredUnit::update(const InstSeqNum &done_sn, ThreadID tid)
                     predHist[tid].back().bpHistory, false,
                     predHist[tid].back().inst,
                     predHist[tid].back().target);
-
+        
         if (iPred) {
             iPred->commit(done_sn, tid, predHist[tid].back().indirectHistory);
         }
@@ -389,6 +390,16 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
 
     ++stats.condIncorrect;
     ppMisses->notify(1);
+    std::map<Addr, int>::iterator iter;
+    Addr pc_branch= predHist[tid].back().pc;
+    iter=mispredict_tracker.find(pc_branch);
+    if(iter !=mispredict_tracker.end()){
+        mispredict_tracker[pc_branch]++;
+    }
+    else{
+        iter= mispredict_tracker.begin();
+        mispredict_tracker.insert(iter, std::pair<Addr, int>(pc_branch, 1));
+    }
 
     DPRINTF(Branch, "[tid:%i] Squashing from sequence number %i, "
             "setting target to %s\n", tid, squashed_sn, corrTarget);
@@ -455,6 +466,7 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
             }
             if (hist_it->wasIndirect) {
                 ++stats.indirectMispredicted;
+
                 if (iPred) {
                     iPred->recordTarget(
                         hist_it->seqNum, pred_hist.front().indirectHistory,
@@ -518,9 +530,13 @@ BPredUnit::dump()
                         pred_hist_it->bpHistory);
                 pred_hist_it++;
             }
-
+            
             cprintf("\n");
         }
+    }
+    std::map<Addr, int>::iterator iter;
+    for (iter=mispredict_tracker.begin(); iter!=mispredict_tracker.end(); iter++){
+        printf("%lx---------%d\n", iter->first, iter->second);
     }
 }
 
