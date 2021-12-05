@@ -391,16 +391,19 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
     ++stats.condIncorrect;
     ppMisses->notify(1);
     std::map<Addr, int>::iterator iter;
-    Addr pc_branch= predHist[tid].back().pc;
+    Addr pc_branch= predHist[tid].front().pc;
     iter=mispredict_tracker.find(pc_branch);
     if(iter !=mispredict_tracker.end()){
         mispredict_tracker[pc_branch]++;
+        if( mispredict_tracker[pc_branch] > 500)
+            printf("%lx---------%d\n", pc_branch, mispredict_tracker[pc_branch]);
     }
     else{
         iter= mispredict_tracker.begin();
         mispredict_tracker.insert(iter, std::pair<Addr, int>(pc_branch, 1));
+        
     }
-
+    
     DPRINTF(Branch, "[tid:%i] Squashing from sequence number %i, "
             "setting target to %s\n", tid, squashed_sn, corrTarget);
 
@@ -534,10 +537,7 @@ BPredUnit::dump()
             cprintf("\n");
         }
     }
-    std::map<Addr, int>::iterator iter;
-    for (iter=mispredict_tracker.begin(); iter!=mispredict_tracker.end(); iter++){
-        printf("%lx---------%d\n", iter->first, iter->second);
-    }
+    
 }
 
 } // namespace branch_prediction
