@@ -128,7 +128,7 @@ Tournament2BP::Tournament2BP(const Tournament2BPParams &params)
     localThreshold  = (1ULL << (localCtrBits  - 1)) - 1;
     globalThreshold = (1ULL << (globalCtrBits - 1)) - 1;
     choiceThreshold = (1ULL << (choiceCtrBits - 1)) - 1;
-    prediction = false;
+    prediction = true;
 
 }
 
@@ -290,7 +290,7 @@ Tournament2BP::update(ThreadID tid, Addr branch_addr, bool taken,
         // If the local prediction matches the actual outcome,
         // decrement the counter. Otherwise increment the
         // counter.
-    unsigned choice_predictor_idx = (branch_addr & choiceHistoryMask);
+    unsigned choice_predictor_idx = ((branch_addr >> instShiftAmt) & choiceHistoryMask);
     if (taken == history->tage_predicted) {
         choiceCtrs[choice_predictor_idx]++;
     }

@@ -89,6 +89,14 @@ class TournamentBP(BranchPredictor):
     choicePredictorSize = Param.Unsigned(8192, "Size of choice predictor")
     choiceCtrBits = Param.Unsigned(2, "Bits of choice counters")
 
+class Gshare(BranchPredictor):
+    type = 'Gshare'
+    cxx_class = 'gem5::branch_prediction::Gshare'
+    cxx_header = "cpu/pred/gshare.hh"
+
+    globalPredictorSize = Param.Unsigned(8192, "Size of global predictor")
+    globalCtrBits = Param.Unsigned(2, "Bits per counter")
+
 
 
 
@@ -111,14 +119,14 @@ class TAGEBase(SimObject):
     instShiftAmt = Param.Unsigned(Parent.instShiftAmt,
         "Number of bits to shift instructions by")
 
-    nHistoryTables = Param.Unsigned(7, "Number of history tables")
-    minHist = Param.Unsigned(5, "Minimum history size of TAGE")
-    maxHist = Param.Unsigned(130, "Maximum history size of TAGE")
+    nHistoryTables = Param.Unsigned(4, "Number of history tables")
+    minHist = Param.Unsigned(4, "Minimum history size of TAGE")
+    maxHist = Param.Unsigned(16, "Maximum history size of TAGE")
 
     tagTableTagWidths = VectorParam.Unsigned(
-        [0, 9, 9, 10, 10, 11, 11, 12], "Tag size in TAGE tag tables")
+        [0, 7, 7, 8, 8], "Tag size in TAGE tag tables")
     logTagTableSizes = VectorParam.Int(
-        [13, 9, 9, 9, 9, 9, 9, 9], "Log2 of TAGE table sizes")
+        [10, 10, 10, 11, 11], "Log2 of TAGE table sizes")
     logRatioBiModalHystEntries = Param.Unsigned(2,
         "Log num of prediction entries for a shared hysteresis bit " \
         "for the Bimodal")
