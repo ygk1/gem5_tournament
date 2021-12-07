@@ -267,6 +267,14 @@ Tournament2BP::update(ThreadID tid, Addr branch_addr, bool taken,
     BPHistory *history = static_cast<BPHistory *>(bp_history);
     void *tage_history = history->BPTage;
     void *mpp_history = history->BPMPP;
+    unsigned choice_predictor_idx = ((branch_addr >> instShiftAmt) & choiceHistoryMask);
+    if (taken == history->tage_predicted) {
+        choiceCtrs[choice_predictor_idx]--;
+    }
+    else if(taken == history->mpp_predicted) {
+        choiceCtrs[choice_predictor_idx]++;
+    }
+    
     tage_pred->update(tid, branch_addr, taken, tage_history,
         squashed, inst, corrTarget);
     prec_pred->update(tid, branch_addr, taken, mpp_history,
@@ -290,13 +298,7 @@ Tournament2BP::update(ThreadID tid, Addr branch_addr, bool taken,
         // If the local prediction matches the actual outcome,
         // decrement the counter. Otherwise increment the
         // counter.
-    unsigned choice_predictor_idx = ((branch_addr >> instShiftAmt) & choiceHistoryMask);
-    if (taken == history->tage_predicted) {
-        choiceCtrs[choice_predictor_idx]--;
-    }
-    else if(taken == history->mpp_predicted) {
-        choiceCtrs[choice_predictor_idx]++;
-    }
+ 
 
 
     // Update the counters with the proper
