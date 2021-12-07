@@ -218,7 +218,7 @@ Tournament2BP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
 
 
     //Lookup in the choice predictor to see which one to use
-    choice_prediction = choiceThreshold <
+    choice_prediction = choiceThreshold >
       choiceCtrs[(branch_addr >> instShiftAmt) & choiceHistoryMask];
 
     // Create BPHistory and pass it back to be recorded.
@@ -292,10 +292,10 @@ Tournament2BP::update(ThreadID tid, Addr branch_addr, bool taken,
         // counter.
     unsigned choice_predictor_idx = ((branch_addr >> instShiftAmt) & choiceHistoryMask);
     if (taken == history->tage_predicted) {
-        choiceCtrs[choice_predictor_idx]++;
+        choiceCtrs[choice_predictor_idx]--;
     }
     else if(taken == history->mpp_predicted) {
-        choiceCtrs[choice_predictor_idx]--;
+        choiceCtrs[choice_predictor_idx]++;
     }
 
 
