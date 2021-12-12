@@ -57,121 +57,19 @@ Tournament2BP::Tournament2BP(const Tournament2BPParams &params)
     : BPredUnit(params),
       tage_pred(params.tage),
       prec_pred(params.perceptron),
-      localPredictorSize(params.localPredictorSize),
-      localCtrBits(params.localCtrBits),
-      localCtrs(localPredictorSize, SatCounter8(localCtrBits)),
-      localHistoryTableSize(params.localHistoryTableSize),
-      localHistoryBits(ceilLog2(params.localPredictorSize)),
-      globalPredictorSize(params.globalPredictorSize),
-      globalCtrBits(params.globalCtrBits),
-      globalCtrs(globalPredictorSize, SatCounter8(globalCtrBits)),
-      globalHistory(params.numThreads, 0),
-      globalHistoryBits(
-          ceilLog2(params.globalPredictorSize) >
-          ceilLog2(params.choicePredictorSize) ?
-          ceilLog2(params.globalPredictorSize) :
-          ceilLog2(params.choicePredictorSize)),
       choicePredictorSize(params.choicePredictorSize),
       choiceCtrBits(params.choiceCtrBits),
-      choiceCtrs(choicePredictorSize, SatCounter8(choiceCtrBits))
+      choiceCtrs(choicePredictorSize, SatCounter8(choiceCtrBits, ((1ULL << (params.choiceCtrBits - 1))- 1)))
 {
-    if (!isPowerOf2(localPredictorSize)) {
-        fatal("Invalid local predictor size!\n");
-    }
-
-    if (!isPowerOf2(globalPredictorSize)) {
-        fatal("Invalid global predictor size!\n");
-    }
-
-    localPredictorMask = mask(localHistoryBits);
-
-    if (!isPowerOf2(localHistoryTableSize)) {
-        fatal("Invalid local history table size!\n");
-    }
-
-    //Setup the history table for the local table
-    localHistoryTable.resize(localHistoryTableSize);
-
-    for (int i = 0; i < localHistoryTableSize; ++i)
-        localHistoryTable[i] = 0;
-
-    // Set up the global history mask
-    // this is equivalent to mask(log2(globalPredictorSize)
-    globalHistoryMask = globalPredictorSize - 1;
-
-    if (!isPowerOf2(choicePredictorSize)) {
-        fatal("Invalid choice predictor size!\n");
-    }
 
     // Set up choiceHistoryMask
     // this is equivalent to mask(log2(choicePredictorSize)
     choiceHistoryMask = choicePredictorSize - 1;
 
-    //Set up historyRegisterMask
-    historyRegisterMask = mask(globalHistoryBits);
-
-    //Check that predictors don't use more bits than they have available
-    if (globalHistoryMask > historyRegisterMask) {
-        fatal("Global predictor too large for global history bits!\n");
-    }
-    if (choiceHistoryMask > historyRegisterMask) {
-        fatal("Choice predictor too large for global history bits!\n");
-    }
-
-    if (globalHistoryMask < historyRegisterMask &&
-        choiceHistoryMask < historyRegisterMask) {
-        inform("More global history bits than required by predictors\n");
-    }
-
     // Set thresholds for the three predictors' counters
     // This is equivalent to (2^(Ctr))/2 - 1
-    localThreshold  = (1ULL << (localCtrBits  - 1)) - 1;
-    globalThreshold = (1ULL << (globalCtrBits - 1)) - 1;
     choiceThreshold = (1ULL << (choiceCtrBits - 1)) - 1;
-    prediction = true;
 
-}
-
-
-
-inline
-unsigned
-Tournament2BP::calcLocHistIdx(Addr &branch_addr)
-{
-    // Get low order bits after removing instruction offset.
-    return (branch_addr >> instShiftAmt) & (localHistoryTableSize - 1);
-}
-
-inline
-void
-Tournament2BP::updateGlobalHistTaken(ThreadID tid)
-{
-    globalHistory[tid] = (globalHistory[tid] << 1) | 1;
-    globalHistory[tid] = globalHistory[tid] & historyRegisterMask;
-}
-
-inline
-void
-Tournament2BP::updateGlobalHistNotTaken(ThreadID tid)
-{
-    globalHistory[tid] = (globalHistory[tid] << 1);
-    globalHistory[tid] = globalHistory[tid] & historyRegisterMask;
-}
-
-inline
-void
-Tournament2BP::updateLocalHistTaken(unsigned local_history_idx)
-{
-    localHistoryTable[local_history_idx] =
-        (localHistoryTable[local_history_idx] << 1) | 1;
-}
-
-inline
-void
-Tournament2BP::updateLocalHistNotTaken(unsigned local_history_idx)
-{
-    localHistoryTable[local_history_idx] =
-        (localHistoryTable[local_history_idx] << 1);
 }
 
 
@@ -182,11 +80,6 @@ Tournament2BP::btbUpdate(ThreadID tid, Addr branch_addr, void * &bp_history)
     BPHistory *history = static_cast<BPHistory *>(bp_history);
     void *tage_history = history->BPTage;
     void *mpp_history = history->BPMPP;
-    //Update Global History to Not Taken (clear LSB)
-    //globalHistory[tid] &= (historyRegisterMask & ~1ULL);
-    //Update Local History to Not Taken
-    //localHistoryTable[local_history_idx] =
-    //   localHistoryTable[local_history_idx] & (localPredictorMask & ~1ULL);
     tage_pred->btbUpdate(tid, branch_addr, tage_history);
     prec_pred->btbUpdate(tid, branch_addr, mpp_history);
 }
@@ -218,9 +111,9 @@ Tournament2BP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
 
 
     //Lookup in the choice predictor to see which one to use
-    choice_prediction = choiceThreshold >
+    choice_prediction = choiceThreshold <
       choiceCtrs[(branch_addr >> instShiftAmt) & choiceHistoryMask];
-
+    
     // Create BPHistory and pass it back to be recorded.
 
 
@@ -230,13 +123,9 @@ Tournament2BP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
     history->tage_predicted = tage_prediction;
     history->mpp_predicted = multilayer_preceptron_prediction;
     if (choice_prediction) {
-            updateGlobalHistTaken(tid);
-            prediction = tage_prediction;
-            
             return tage_prediction;
-    } else {
-            updateGlobalHistNotTaken(tid);
-            prediction = multilayer_preceptron_prediction;
+            }
+    else {
             return multilayer_preceptron_prediction;
         }
 }
@@ -254,8 +143,11 @@ Tournament2BP::uncondBranch(ThreadID tid, Addr pc, void * &bp_history)
     history->BPTage = static_cast<TAGE::TageBranchInfo*>(history_tage);
     history->BPMPP = static_cast<MultiperspectivePerceptron8KB::MPPBranchInfo*>
      (history_MPP);
+    history->mpp_predicted = true;
+    history->tage_predicted = true;
+    history->uncond = true;
     bp_history = (void *)history;
-    updateGlobalHistTaken(tid);
+   
 }
 
 void
@@ -267,45 +159,31 @@ Tournament2BP::update(ThreadID tid, Addr branch_addr, bool taken,
     BPHistory *history = static_cast<BPHistory *>(bp_history);
     void *tage_history = history->BPTage;
     void *mpp_history = history->BPMPP;
-    unsigned choice_predictor_idx = ((branch_addr >> instShiftAmt) & choiceHistoryMask);
-    if (taken == history->tage_predicted) {
-        choiceCtrs[choice_predictor_idx]--;
-    }
-    else if(taken == history->mpp_predicted) {
-        choiceCtrs[choice_predictor_idx]++;
-    }
-    
+
     tage_pred->update(tid, branch_addr, taken, tage_history,
         squashed, inst, corrTarget);
     prec_pred->update(tid, branch_addr, taken, mpp_history,
         squashed, inst, corrTarget);
+
+    
+   
    
     if (squashed) {
         // Global history restore and update
         return ;
     }
 
-    // Unconditional branches do not use local history.
+    if (history->mpp_predicted != history->tage_predicted && history->uncond==false){
+        unsigned choice_predictor_idx = ((branch_addr >> instShiftAmt) & choiceHistoryMask);
 
-    // If this is a misprediction, restore the speculatively
-    // updated state (global history register and local history)
-    // and update again.
-
-
-    // Update the choice predictor to tell it which one was correct if
-    // there was a prediction.
-
-        // If the local prediction matches the actual outcome,
-        // decrement the counter. Otherwise increment the
-        // counter.
- 
-
-
-    // Update the counters with the proper
-    // resolution of the branch. Histories are updated
-    // speculatively, restored upon squash() calls, and
-    // recomputed upon update(squash = true) calls,
-    // so they do not need to be updated.
+        if (taken == history->tage_predicted) {
+            choiceCtrs[choice_predictor_idx]++;
+        }
+        else if(taken == history->mpp_predicted) {
+            choiceCtrs[choice_predictor_idx]--;
+        }
+    }
+    
     delete(history);
     // We're done with this history, now delete it.
 
@@ -319,6 +197,7 @@ Tournament2BP::squash(ThreadID tid, void *bp_history)
     void *mpp_history = history->BPMPP;
     tage_pred->squash(tid, tage_history);
     prec_pred->squash(tid, mpp_history);
+    delete(history);
 }
 
 #ifdef DEBUG

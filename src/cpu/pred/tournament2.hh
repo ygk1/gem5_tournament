@@ -120,39 +120,6 @@ class Tournament2BP : public BPredUnit
 
   private:
     /**
-     * Returns if the branch should be taken or not, given a counter
-     * value.
-     * @param count The counter value.
-     */
-    inline bool getPrediction(uint8_t &count);
-
-    /**
-     * Returns the local history index, given a branch address.
-     * @param branch_addr The branch's PC address.
-     */
-    inline unsigned calcLocHistIdx(Addr &branch_addr);
-
-    /** Updates global history as taken. */
-    inline void updateGlobalHistTaken(ThreadID tid);
-
-    /** Updates global history as not taken. */
-    inline void updateGlobalHistNotTaken(ThreadID tid);
-
-    /**
-     * Updates local histories as taken.
-     * @param local_history_idx The local history table entry that
-     * will be updated.
-     */
-    inline void updateLocalHistTaken(unsigned local_history_idx);
-
-    /**
-     * Updates local histories as not taken.
-     * @param local_history_idx The local history table entry that
-     * will be updated.
-     */
-    inline void updateLocalHistNotTaken(unsigned local_history_idx);
-
-    /**
      * The branch history information that is created upon predicting
      * a branch.  It will be passed back upon updating and squashing,
      * when the BP can use this information to update/restore its
@@ -172,6 +139,7 @@ class Tournament2BP : public BPredUnit
         MultiperspectivePerceptron8KB::MPPBranchInfo *BPMPP;
         bool tage_predicted;
         bool mpp_predicted;
+        bool uncond=false;
 
 
 
@@ -180,56 +148,10 @@ class Tournament2BP : public BPredUnit
 
     /** Flag for invalid predictor index */
     static const int invalidPredictorIndex = -1;
-    /** Number of counters in the local predictor. */
-    unsigned localPredictorSize;
-
-    /** Mask to truncate values stored in the local history table. */
-    unsigned localPredictorMask;
-
-    /** Number of bits of the local predictor's counters. */
-    unsigned localCtrBits;
-
-    /** Local counters. */
-    std::vector<SatCounter8> localCtrs;
-
-    /** Array of local history table entries. */
-    std::vector<unsigned> localHistoryTable;
-
-    /** Number of entries in the local history table. */
-    unsigned localHistoryTableSize;
-
-    /** Number of bits for each entry of the local history table. */
-    unsigned localHistoryBits;
-
-    /** Number of entries in the global predictor. */
-    unsigned globalPredictorSize;
-
-    /** Number of bits of the global predictor's counters. */
-    unsigned globalCtrBits;
-
-    /** Array of counters that make up the global predictor. */
-    std::vector<SatCounter8> globalCtrs;
-
-    /** Global history register. Contains as much history as specified by
-     *  globalHistoryBits. Actual number of bits used is determined by
-     *  globalHistoryMask and choiceHistoryMask. */
-    std::vector<unsigned> globalHistory;
-
-    /** Number of bits for the global history. Determines maximum number of
-        entries in global and choice predictor tables. */
-    unsigned globalHistoryBits;
-
-    /** Mask to apply to globalHistory to access global history table.
-     *  Based on globalPredictorSize.*/
-    unsigned globalHistoryMask;
 
     /** Mask to apply to globalHistory to access choice history table.
      *  Based on choicePredictorSize.*/
     unsigned choiceHistoryMask;
-
-    /** Mask to control how much history is stored. All of it might not be
-     *  used. */
-    unsigned historyRegisterMask;
 
     /** Number of entries in the choice predictor. */
     unsigned choicePredictorSize;
@@ -243,8 +165,6 @@ class Tournament2BP : public BPredUnit
     /** Thresholds for the counter value; above the threshold is taken,
      *  equal to or below the threshold is not taken.
      */
-    unsigned localThreshold;
-    unsigned globalThreshold;
     unsigned choiceThreshold;
     bool prediction;
 };
