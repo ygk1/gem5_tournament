@@ -395,8 +395,8 @@ BPredUnit::squash(const InstSeqNum &squashed_sn,
     iter=mispredict_tracker.find(pc_branch);
     if(iter !=mispredict_tracker.end()){
         mispredict_tracker[pc_branch]++;
-        if( mispredict_tracker[pc_branch] > 500)
-            printf("%lx---------%d\n", pc_branch, mispredict_tracker[pc_branch]);
+        //if( mispredict_tracker[pc_branch] > 500)
+        //    printf("%lx---------%d\n", pc_branch, mispredict_tracker[pc_branch]);
     }
     else{
         iter= mispredict_tracker.begin();

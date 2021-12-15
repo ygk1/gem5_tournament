@@ -53,7 +53,7 @@ Gshare::Gshare(const GshareParams &params)
     : BPredUnit(params),
       globalPredictorSize(params.globalPredictorSize),
       globalCtrBits(params.globalCtrBits),
-      globalCtrs(globalPredictorSize, SatCounter8(globalCtrBits)),
+      globalCtrs(globalPredictorSize, SatCounter8(globalCtrBits,  ((1ULL << (params.globalCtrBits - 1))- 1))),
       globalHistory(params.numThreads, 0),
       globalHistoryBits(
           ceilLog2(params.globalPredictorSize))
@@ -116,14 +116,19 @@ Gshare::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
     //Lookup in the global predictor to get its branch prediction
     global_prediction = globalThreshold <
       globalCtrs[(globalHistory[tid] & globalHistoryMask) ^ ((branch_addr >> instShiftAmt) & globalHistoryMask)];
-
+  
 
     // Create BPHistory and pass it back to be recorded.
     BPHistory *history = new BPHistory;
     history->globalHistory = globalHistory[tid];
     history->globalPredTaken = global_prediction;
     bp_history = (void *)history;
-
+    if (global_prediction){
+        updateGlobalHistTaken(tid);
+    }
+    else{
+        updateGlobalHistNotTaken(tid);
+    }
     return global_prediction;
 }
 

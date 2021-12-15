@@ -59,14 +59,14 @@ Tournament2BP::Tournament2BP(const Tournament2BPParams &params)
       prec_pred(params.perceptron),
       choicePredictorSize(params.choicePredictorSize),
       choiceCtrBits(params.choiceCtrBits),
-      choiceCtrs(choicePredictorSize, SatCounter8(choiceCtrBits, ((1ULL << (params.choiceCtrBits - 1))- 1)))
+      choiceCtrs(choicePredictorSize, SatCounter8(choiceCtrBits, ((1ULL << (params.choiceCtrBits - 1)) - 1)))
 {
 
     // Set up choiceHistoryMask
     // this is equivalent to mask(log2(choicePredictorSize)
     choiceHistoryMask = choicePredictorSize - 1;
 
-    // Set thresholds for the three predictors' counters
+    // Set thresholds for the choice predictors' counters
     // This is equivalent to (2^(Ctr))/2 - 1
     choiceThreshold = (1ULL << (choiceCtrBits - 1)) - 1;
 
@@ -87,10 +87,10 @@ Tournament2BP::btbUpdate(ThreadID tid, Addr branch_addr, void * &bp_history)
 bool
 Tournament2BP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
 {
-    //bool taken_prediction=true;
+    
     bool tage_prediction;
 
-    bool multilayer_preceptron_prediction;
+    bool multiperspective_preceptron_prediction;
     bool choice_prediction;
     BPHistory *history = new BPHistory;
     bp_history = history;
@@ -100,7 +100,7 @@ Tournament2BP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
 
 
     tage_prediction = tage_pred->lookup(tid, branch_addr, history_tage);
-    multilayer_preceptron_prediction = prec_pred->lookup(tid, branch_addr,
+    multiperspective_preceptron_prediction = prec_pred->lookup(tid, branch_addr,
     history_MPP);
 
     history->BPTage = static_cast<TAGE::TageBranchInfo*>(history_tage);
@@ -121,12 +121,12 @@ Tournament2BP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
     // Speculative update of the global history and the
     // selected local history.
     history->tage_predicted = tage_prediction;
-    history->mpp_predicted = multilayer_preceptron_prediction;
+    history->mpp_predicted = multiperspective_preceptron_prediction;
     if (choice_prediction) {
             return tage_prediction;
             }
     else {
-            return multilayer_preceptron_prediction;
+            return multiperspective_preceptron_prediction;
         }
 }
 
@@ -169,11 +169,11 @@ Tournament2BP::update(ThreadID tid, Addr branch_addr, bool taken,
    
    
     if (squashed) {
-        // Global history restore and update
+        
         return ;
     }
 
-    if (history->mpp_predicted != history->tage_predicted && history->uncond==false){
+    if ((history->mpp_predicted != history->tage_predicted) && (history->uncond==false)){
         unsigned choice_predictor_idx = ((branch_addr >> instShiftAmt) & choiceHistoryMask);
 
         if (taken == history->tage_predicted) {
@@ -183,9 +183,9 @@ Tournament2BP::update(ThreadID tid, Addr branch_addr, bool taken,
             choiceCtrs[choice_predictor_idx]--;
         }
     }
-    
-    delete(history);
     // We're done with this history, now delete it.
+    delete(history);
+    
 
 }
 

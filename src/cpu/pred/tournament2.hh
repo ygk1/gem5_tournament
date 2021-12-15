@@ -57,8 +57,7 @@ namespace branch_prediction
 {
 
 /**
- * Implements a Tournament2 branch predictor, hopefully identical to the one
- * used in the 21264.  
+ * Implements a Tournament2 branch predictor.  
  */
 class Tournament2BP : public BPredUnit
 {
@@ -82,9 +81,7 @@ class Tournament2BP : public BPredUnit
     bool lookup(ThreadID tid, Addr branch_addr, void * &bp_history);
 
     /**
-     * Records that there was an unconditional branch, and modifies
-     * the bp history to point to an object that has the previous
-     * global history stored in it.
+     * Records that there was an unconditional branch.
      * @param bp_history Pointer that will be set to the BPHistory object.
      */
     void uncondBranch(ThreadID tid, Addr pc, void * &bp_history);
@@ -112,9 +109,9 @@ class Tournament2BP : public BPredUnit
                 bool squashed, const StaticInstPtr & inst, Addr corrTarget);
 
     /**
-     * Restores the global branch history on a squash.
+     * Restores the speculative state changes on a squash.
      * @param bp_history Pointer to the BPHistory object that has the
-     * previous global branch history in it.
+     * previous predictor state in it.
      */
     void squash(ThreadID tid, void *bp_history);
 

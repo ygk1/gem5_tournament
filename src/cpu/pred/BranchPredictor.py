@@ -609,6 +609,17 @@ class MultiperspectivePerceptron64KB(MultiperspectivePerceptron):
     imli_mask4 = 0x80008000
     recencypos_mask = 0x100000090
 
+
+class Tournament3BP(BranchPredictor):
+    type = 'Tournament3BP'
+    cxx_class = 'gem5::branch_prediction::Tournament3BP'
+    cxx_header = "cpu/pred/tournament3.hh"
+
+    choicePredictorSize = Param.Unsigned(32768, "Size of choice predictor")
+    choiceCtrBits = Param.Unsigned(2, "Bits of choice counters")
+    tage = Param.TAGE(TAGE(), "Tage object")
+    perceptron = Param.MultiperspectivePerceptron64KB(MultiperspectivePerceptron64KB(), "Multiperspective Perceptron")
+
 class MPP_TAGE(TAGEBase):
     type = 'MPP_TAGE'
     cxx_class = 'gem5::branch_prediction::MPP_TAGE'

@@ -55,12 +55,7 @@ namespace branch_prediction
 {
 
 /**
- * Implements a GSHARE branch predictor, hopefully identical to the one
- * used in the 21264.  It has a local predictor, which uses a local history
- * table to index into a table of counters, and a global predictor, which
- * uses a global history to index into a table of counters.  A choice
- * predictor chooses between the two.  Both the global history register
- * and the selected local history are speculatively updated.
+ * Implements a GSHARE branch predictor
  */
 class Gshare : public BPredUnit
 {
