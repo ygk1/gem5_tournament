@@ -1,18 +1,14 @@
 
-And are added here as well 
 
+# Cloning and building the project.
 
-This is the modified gem5 simulator.
-
-## cloning and building the project.
-
-    you can clone the project with the from the link:
+    This is the modified gem5 simulator. You can clone the project with the from the link:
 
     next build gem5 with:
 
         scons build/X86/gem5.opt -j [CPU NUM]
 
-## Testing 
+# Testing 
 
 We have provided 2 testing scripts we used for our evaluation, due to issues of having particular sets of tests working on one system and failing on another. We have included 2 scripts each used by a group member to evaluate the implementation.
 
@@ -43,7 +39,7 @@ The second script is "tournament_test2.sh", which we used to evaluate the perfom
 
             ./tournament_test2.sh
 
-## Implementation Disclosures
+# Implementation Disclosures
 
 Due to original implementation of the Multiperspective Perceptron Predictor for different sizes(8KB, 64KB), we had to make 2 versions of our predictor one with 8KB MPP and another with 64KB MPP. the predictors have object names of Tournament2BP and Tournament3BP, respectively. 
 
