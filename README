@@ -1,40 +1,97 @@
-Instructions for testing our implementaiton can be found in "TEST_INSTRUCTIONS.md"
+
+And are added here as well 
 
 
-This is the gem5 simulator.
+This is the modified gem5 simulator.
 
-The main website can be found at http://www.gem5.org
+## cloning and building the project.
 
-A good starting point is http://www.gem5.org/about, and for
-more information about building the simulator and getting started
-please see http://www.gem5.org/documentation and
-http://www.gem5.org/documentation/learning_gem5/introduction.
+    you can clone the project with the from the link:
 
-To build gem5, you will need the following software: g++ or clang,
-Python (gem5 links in the Python interpreter), SCons, SWIG, zlib, m4,
-and lastly protobuf if you want trace capture and playback
-support. Please see http://www.gem5.org/documentation/general_docs/building
-for more details concerning the minimum versions of the aforementioned tools.
+    next build gem5 with:
 
-Once you have all dependencies resolved, type 'scons
-build/<ARCH>/gem5.opt' where ARCH is one of ARM, NULL, MIPS, POWER, SPARC,
-or X86. This will build an optimized version of the gem5 binary (gem5.opt)
-for the the specified architecture. See
-http://www.gem5.org/documentation/general_docs/building for more details and
-options.
+        scons build/X86/gem5.opt -j [CPU NUM]
 
-The basic source release includes these subdirectories:
-   - configs: example simulation configuration scripts
-   - ext: less-common external packages needed to build gem5
-   - src: source code of the gem5 simulator
-   - system: source for some optional system software for simulated systems
-   - tests: regression tests
-   - util: useful utility programs and files
+## Testing 
 
-To run full-system simulations, you will need compiled system firmware
-(console and PALcode for Alpha), kernel binaries and one or more disk
-images.
+We have provided 2 testing scripts we used for our evaluation, due to issues of having particular sets of tests working on one system and failing on another. We have included 2 scripts each used by a group member to evaluate the implementation.
 
-If you have questions, please send mail to gem5-users@gem5.org
+The first script is "tournament_test1.sh", which we used to evalate the performance of our predictor compared to other predictors.
 
-Enjoy using gem5 and please share your modifications and extensions.
+In the config file you will find several options to set the cache sizes, cpu model, and branch predictor.
+
+You also need to specify gem5 binary path, stat dumping directory, and benchmark directory.
+
+Once the options are set the tests can be done by using the commands
+        
+        Make the script execuatable:
+
+             chmod +x tournament_test1.sh 
+
+        Run the script:
+
+            ./tournament_test1.sh
+
+
+The second script is "tournament_test2.sh", which we used to evaluate the perfomrmance of our predictor for various budget bits. Similar to test 1 
+
+        Make the script execuatable:
+
+            chmod +x tournament_test2.sh 
+
+        Run the script:
+
+            ./tournament_test2.sh
+
+## Implementation Disclosures
+
+Due to original implementation of the Multiperspective Perceptron Predictor for different sizes(8KB, 64KB), we had to make 2 versions of our predictor one with 8KB MPP and another with 64KB MPP. the predictors have object names of Tournament2BP and Tournament3BP, respectively. 
+
+To modify the TAGE configuration:
+
+1. Open the file /src/cpu/pred/BranchPredictor.py
+
+2. Go to the TAGEBase Predictor Object
+
+and Modify the lines below as:
+
+For TAGE 1 configuration: 
+
+    nHistoryTables = Param.Unsigned(4, "Number of history tables")
+    minHist = Param.Unsigned(4, "Minimum history size of TAGE")
+    maxHist = Param.Unsigned(16, "Maximum history size of TAGE")
+
+    tagTableTagWidths = VectorParam.Unsigned(
+        [0, 7, 7, 8, 8], "Tag size in TAGE tag tables")
+    logTagTableSizes = VectorParam.Int(
+        [10, 10, 10, 11, 11], "Log2 of TAGE table sizes")
+
+For TAGE 2 configuration:
+
+    nHistoryTables = Param.Unsigned(9, "Number of history tables")
+    minHist = Param.Unsigned(4, "Minimum history size of TAGE")
+    maxHist = Param.Unsigned(160, "Maximum history size of TAGE")
+
+    tagTableTagWidths = VectorParam.Unsigned(
+        [0, 7, 7, 8, 8, 9, 10, 11, 12, 12], "Tag size in TAGE tag tables")
+    logTagTableSizes = VectorParam.Int(
+        [10, 10, 10, 11, 11, 11, 11, 10, 10, 10], "Log2 of TAGE table sizes")
+
+For TAGE 3 configuration:
+
+    nHistoryTables = Param.Unsigned(12, "Number of history tables")
+    minHist = Param.Unsigned(4, "Minimum history size of TAGE")
+    maxHist = Param.Unsigned(640, "Maximum history size of TAGE")
+
+    tagTableTagWidths = VectorParam.Unsigned(
+        [0, 7, 7, 8, 8, 9, 10, 11, 12, 12, 13, 14, 15], "Tag size in TAGE tag tables")
+    logTagTableSizes = VectorParam.Int(
+        [10, 10, 10, 11, 11, 11, 11, 10, 10, 10, 10, 9, 9], "Log2 of TAGE table sizes")
+
+You can also modify the Choice Table predictor size, by going to the Tournament2BP and Tournament2BP objects in BranchPredictor.py and modifying the parameter
+
+After the modifications you can re-build gem5 as:
+
+    scons build/X86/gem5.opt -j [CPU NUM]
+
+And run the tests as shown above in the section "Testing".
